@@ -52,6 +52,7 @@ batch_convert.log
 Thumbs.db
 
 # Input/Output directories (user data)
+data/
 pdfs/
 markdown_output/
 output/
