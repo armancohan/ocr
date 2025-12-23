@@ -23,10 +23,22 @@ fi
 
 echo ""
 echo "[1/5] Installing system dependencies..."
-$SUDO apt-get update
+
+# Fix for outdated/broken repository sources (common on older cloud images)
+# Remove problematic backports if they exist
+if [ -f /etc/apt/sources.list ]; then
+    $SUDO sed -i '/bullseye-backports/d' /etc/apt/sources.list 2>/dev/null || true
+fi
+if [ -d /etc/apt/sources.list.d ]; then
+    $SUDO find /etc/apt/sources.list.d -name "*.list" -exec sed -i '/bullseye-backports/d' {} \; 2>/dev/null || true
+fi
+
+# Update package lists (continue even if some repos fail)
+$SUDO apt-get update --allow-releaseinfo-change 2>/dev/null || $SUDO apt-get update || true
+
+# Install core dependencies
 $SUDO apt-get install -y \
     poppler-utils \
-    ttf-mscorefonts-installer \
     fonts-crosextra-caladea \
     fonts-crosextra-carlito \
     gsfonts \
@@ -34,7 +46,17 @@ $SUDO apt-get install -y \
     python3.11 \
     python3.11-venv \
     python3-pip \
+    git \
+    || $SUDO apt-get install -y \
+    poppler-utils \
+    python3.11 \
+    python3.11-venv \
+    python3-pip \
     git
+
+# Try to install MS fonts (optional, may require EULA acceptance)
+$SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer 2>/dev/null || \
+    echo "Note: MS fonts skipped (optional)"
 
 echo ""
 echo "[2/5] Creating Python virtual environment..."
