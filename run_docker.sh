@@ -120,36 +120,51 @@ echo "Running olmOCR pipeline..."
 echo "(Model loading takes 1-2 minutes, then you'll see progress)"
 echo ""
 
-# Create workspace directory (olmOCR writes markdown to workspace/markdown/)
-WORKSPACE="$OUTPUT_ABS/.olmocr_workspace"
-mkdir -p "$WORKSPACE"
-
+# Use output directory directly as workspace
 docker run --rm -t --gpus all \
     --shm-size=16g \
     -e PYTHONUNBUFFERED=1 \
     -v "$INPUT_ABS:/input:ro" \
-    -v "$WORKSPACE:/workspace" \
-    -v "$OUTPUT_ABS:/output" \
+    -v "$OUTPUT_ABS:/workspace" \
     -v "$PDF_LISTFILE:/pdf_list.txt:ro" \
     alleninstituteforai/olmocr:latest-with-model \
-    -c "python -m olmocr.pipeline /workspace --markdown --pdfs /pdf_list.txt && \
-        cp /workspace/markdown/*.md /output/ 2>/dev/null || true"
-
-# Also try to copy if docker command didn't do it
-if [ -d "$WORKSPACE/markdown" ]; then
-    cp "$WORKSPACE/markdown"/*.md "$OUTPUT_ABS/" 2>/dev/null || true
-fi
-
-# Count results
-MD_COUNT=$(find "$OUTPUT_ABS" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l)
+    -c "python -m olmocr.pipeline /workspace --markdown --pdfs /pdf_list.txt"
 
 echo ""
 echo "============================================"
-echo "  Conversion Complete!"
+echo "  Processing Complete!"
 echo "============================================"
-echo "Markdown files created: $MD_COUNT"
-echo "Output directory: $OUTPUT_ABS"
-ls -la "$OUTPUT_ABS"/*.md 2>/dev/null | head -10 || echo "No markdown files generated"
 
-# Cleanup workspace (optional - comment out to keep for debugging)
-# rm -rf "$WORKSPACE"
+# Check all possible output locations
+echo "Checking output locations..."
+
+if [ -d "$OUTPUT_ABS/markdown" ]; then
+    echo "Found markdown directory:"
+    MD_COUNT=$(find "$OUTPUT_ABS/markdown" -name "*.md" 2>/dev/null | wc -l)
+    echo "  Markdown files: $MD_COUNT"
+    ls "$OUTPUT_ABS/markdown"/*.md 2>/dev/null | head -5
+
+    # Copy to main output directory
+    echo ""
+    echo "Copying to output directory..."
+    cp "$OUTPUT_ABS/markdown"/*.md "$OUTPUT_ABS/" 2>/dev/null || true
+fi
+
+if [ -d "$OUTPUT_ABS/results" ]; then
+    echo ""
+    echo "Found results directory:"
+    ls -la "$OUTPUT_ABS/results/" | head -5
+fi
+
+# Final count
+FINAL_MD_COUNT=$(find "$OUTPUT_ABS" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l)
+echo ""
+echo "Output directory: $OUTPUT_ABS"
+echo "Markdown files in output: $FINAL_MD_COUNT"
+
+if [ "$FINAL_MD_COUNT" -eq 0 ]; then
+    echo ""
+    echo "WARNING: No markdown files found!"
+    echo "Check the workspace structure:"
+    find "$OUTPUT_ABS" -type d | head -10
+fi
