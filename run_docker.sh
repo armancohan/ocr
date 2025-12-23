@@ -41,7 +41,7 @@ fi
 
 # Verify GPU access in Docker
 echo "Checking GPU access..."
-if ! docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi &>/dev/null; then
+if ! docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi &>/dev/null; then
     echo "Error: Cannot access GPU from Docker"
     echo ""
     echo "Please ensure:"
@@ -54,7 +54,7 @@ if ! docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi &>/dev/null; th
 fi
 
 echo "GPU access confirmed:"
-docker run --rm --gpus all nvidia/cuda:12.0-base nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 echo ""
 
 # Pull latest image
