@@ -112,12 +112,48 @@ python pdf_to_md.py --input ./data --output ./output \
 # Basic usage
 ./run_docker.sh ./data ./output
 
-# Or manually with docker run
-docker run --gpus all \
-  -v $(pwd)/data:/input:ro \
-  -v $(pwd)/output:/output \
-  alleninstituteforai/olmocr:latest-with-model \
-  -c "python -m olmocr.pipeline /output/.workspace --markdown --pdfs /input/*.pdf"
+# Control batch size (smaller = more frequent output)
+PAGES_PER_GROUP=30 ./run_docker.sh ./data ./output
+```
+
+### External vLLM Server (Recommended for Large Jobs)
+
+Running vLLM as a separate server avoids the 2+ minute model loading time on each run. This is ideal for:
+- Processing multiple batches of PDFs
+- Debugging (separate server and pipeline logs)
+- Restarting the pipeline without reloading the model
+
+**Step 1: Start vLLM server (once)**
+
+```bash
+docker run -d --name olmocr-vllm --gpus all \
+    --shm-size=16g \
+    -p 8000:8000 \
+    vllm/vllm-openai:latest \
+    --model allenai/olmOCR-2-7B-1025-FP8 \
+    --max-model-len 16384 \
+    --served-model-name allenai/olmOCR-2-7B-1025-FP8
+
+# Wait for server to be ready (check logs)
+docker logs -f olmocr-vllm
+```
+
+**Step 2: Run OCR pipeline (instant startup)**
+
+```bash
+VLLM_SERVER=http://host.docker.internal:8000/v1 ./run_docker.sh ./data ./output
+```
+
+**Verify server is running:**
+
+```bash
+curl http://localhost:8000/v1/models
+```
+
+**Stop server when done:**
+
+```bash
+docker stop olmocr-vllm && docker rm olmocr-vllm
 ```
 
 ## CLI Options
@@ -146,6 +182,13 @@ docker run --gpus all \
 | `--batch-size`, `-b` | 50 | Number of PDFs per batch |
 | `--resume` | True | Resume from last progress |
 | `--no-resume` | False | Start fresh, don't resume |
+
+### run_docker.sh Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PAGES_PER_GROUP` | 50 | Pages per work item (smaller = more frequent output) |
+| `VLLM_SERVER` | None | External vLLM server URL (e.g., `http://host.docker.internal:8000/v1`) |
 
 ## Configuration
 

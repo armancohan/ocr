@@ -128,14 +128,26 @@ ls -la "$OUTPUT_ABS" | head -5
 echo ""
 
 # Use output directory directly as workspace
-docker run --rm -t --gpus all \
+# If VLLM_SERVER is set, use external server (faster startup, no model reload)
+# Example: VLLM_SERVER=http://host.docker.internal:8000/v1 ./run_docker.sh ./data ./output
+if [ -n "$VLLM_SERVER" ]; then
+    echo "Using external vLLM server: $VLLM_SERVER"
+    SERVER_ARG="--server $VLLM_SERVER"
+    GPU_ARG=""
+else
+    SERVER_ARG=""
+    GPU_ARG="--gpus all"
+fi
+
+docker run --rm -t $GPU_ARG \
     --shm-size=16g \
+    --add-host=host.docker.internal:host-gateway \
     -e PYTHONUNBUFFERED=1 \
     -v "$INPUT_ABS:/input:ro" \
     -v "$OUTPUT_ABS:/workspace" \
     -v "$PDF_LISTFILE:/pdf_list.txt:ro" \
     alleninstituteforai/olmocr:latest-with-model \
-    -c "python -m olmocr.pipeline /workspace --markdown --pages_per_group ${PAGES_PER_GROUP:-50} --pdfs /pdf_list.txt"
+    -c "python -m olmocr.pipeline /workspace --markdown --pages_per_group ${PAGES_PER_GROUP:-50} $SERVER_ARG --pdfs /pdf_list.txt"
 
 # Fix permissions (container runs as root)
 echo "Fixing file permissions..."
