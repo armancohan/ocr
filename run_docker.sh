@@ -75,33 +75,37 @@ echo "Starting conversion..."
 echo "Note: Model loading may take 1-2 minutes on first run"
 echo ""
 
-# Build list of PDF files (glob must expand on host, not in container)
-PDF_LIST=""
-for pdf in "$INPUT_ABS"/*.pdf "$INPUT_ABS"/*.PDF; do
-    if [ -f "$pdf" ]; then
-        filename=$(basename "$pdf")
-        PDF_LIST="$PDF_LIST /input/$filename"
-    fi
+# Build list of PDF files and write to a temp file (handles spaces and long lists)
+PDF_LISTFILE=$(mktemp)
+trap "rm -f $PDF_LISTFILE" EXIT
+
+find "$INPUT_ABS" -type f -iname "*.pdf" | while read -r pdf; do
+    relpath="${pdf#$INPUT_ABS/}"
+    echo "/input/$relpath" >> "$PDF_LISTFILE"
 done
 
-# Also check subdirectories
-for pdf in "$INPUT_ABS"/**/*.pdf "$INPUT_ABS"/**/*.PDF; do
-    if [ -f "$pdf" ]; then
-        relpath="${pdf#$INPUT_ABS/}"
-        PDF_LIST="$PDF_LIST /input/$relpath"
-    fi
-done
-
-echo "PDF files to process:"
-echo "$PDF_LIST" | tr ' ' '\n' | head -5
+PDF_COUNT_FOUND=$(wc -l < "$PDF_LISTFILE")
+echo "PDF files to process: $PDF_COUNT_FOUND"
+head -5 "$PDF_LISTFILE"
 echo ""
 
-docker run --rm --gpus all \
+if [ "$PDF_COUNT_FOUND" -eq 0 ]; then
+    echo "Error: No PDF files found"
+    exit 1
+fi
+
+echo "Running olmOCR pipeline..."
+echo "(Model loading takes 1-2 minutes, then you'll see progress)"
+echo ""
+
+docker run --rm -t --gpus all \
     --shm-size=16g \
-    -v "$INPUT_ABS:/input" \
+    -e PYTHONUNBUFFERED=1 \
+    -v "$INPUT_ABS:/input:ro" \
     -v "$OUTPUT_ABS:/output" \
+    -v "$PDF_LISTFILE:/pdf_list.txt:ro" \
     alleninstituteforai/olmocr:latest-with-model \
-    -c "python -m olmocr.pipeline /output --markdown --pdfs $PDF_LIST"
+    -c "python -m olmocr.pipeline /output --markdown --pdfs /pdf_list.txt"
 
 echo ""
 echo "============================================"
