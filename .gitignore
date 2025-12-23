@@ -68,3 +68,5 @@ output/
 # Config with secrets
 config.json
 .env
+
+tests/

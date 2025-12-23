@@ -120,6 +120,13 @@ echo "Running olmOCR pipeline..."
 echo "(Model loading takes 1-2 minutes, then you'll see progress)"
 echo ""
 
+# Debug: verify mount points
+echo "Debug: Host paths"
+echo "  INPUT_ABS:  $INPUT_ABS"
+echo "  OUTPUT_ABS: $OUTPUT_ABS"
+ls -la "$OUTPUT_ABS" | head -5
+echo ""
+
 # Use output directory directly as workspace
 docker run --rm -t --gpus all \
     --shm-size=16g \
@@ -128,7 +135,11 @@ docker run --rm -t --gpus all \
     -v "$OUTPUT_ABS:/workspace" \
     -v "$PDF_LISTFILE:/pdf_list.txt:ro" \
     alleninstituteforai/olmocr:latest-with-model \
-    -c "python -m olmocr.pipeline /workspace --markdown --pdfs /pdf_list.txt"
+    -c "python -m olmocr.pipeline /workspace --markdown --pages_per_group ${PAGES_PER_GROUP:-50} --pdfs /pdf_list.txt"
+
+# Fix permissions (container runs as root)
+echo "Fixing file permissions..."
+sudo chown -R "$(id -u):$(id -g)" "$OUTPUT_ABS" 2>/dev/null || true
 
 echo ""
 echo "============================================"
