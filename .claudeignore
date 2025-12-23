@@ -5,6 +5,7 @@
 # Output markdown files (generated content)
 markdown_output/
 output/
+data/
 
 # Virtual environments
 venv/

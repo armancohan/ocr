@@ -141,13 +141,15 @@ echo "Checking output locations..."
 if [ -d "$OUTPUT_ABS/markdown" ]; then
     echo "Found markdown directory:"
     MD_COUNT=$(find "$OUTPUT_ABS/markdown" -name "*.md" 2>/dev/null | wc -l)
-    echo "  Markdown files: $MD_COUNT"
-    ls "$OUTPUT_ABS/markdown"/*.md 2>/dev/null | head -5
+    echo "  Markdown files found: $MD_COUNT"
+    find "$OUTPUT_ABS/markdown" -name "*.md" 2>/dev/null | head -5
 
-    # Copy to main output directory
-    echo ""
-    echo "Copying to output directory..."
-    cp "$OUTPUT_ABS/markdown"/*.md "$OUTPUT_ABS/" 2>/dev/null || true
+    if [ "$MD_COUNT" -gt 0 ]; then
+        # Copy all markdown files from subdirectories to main output directory
+        echo ""
+        echo "Copying markdown files to output directory..."
+        find "$OUTPUT_ABS/markdown" -name "*.md" -exec cp {} "$OUTPUT_ABS/" \;
+    fi
 fi
 
 if [ -d "$OUTPUT_ABS/results" ]; then
@@ -166,5 +168,8 @@ if [ "$FINAL_MD_COUNT" -eq 0 ]; then
     echo ""
     echo "WARNING: No markdown files found!"
     echo "Check the workspace structure:"
+    find "$OUTPUT_ABS" -type f -name "*.md" 2>/dev/null || echo "No .md files anywhere in output"
+    echo ""
+    echo "Directory structure:"
     find "$OUTPUT_ABS" -type d | head -10
 fi

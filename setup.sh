@@ -43,19 +43,13 @@ $SUDO apt-get install -y \
     fonts-crosextra-carlito \
     gsfonts \
     lcdf-typetools \
-    python3.11 \
-    python3.11-venv \
-    python3-pip \
     git \
     || $SUDO apt-get install -y \
     poppler-utils \
-    python3.11 \
-    python3.11-venv \
-    python3-pip \
     git
 
 # Try to install MS fonts (optional, may require EULA acceptance)
-$SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer 2>/dev/null || \
+SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y ttf-mscorefonts-installer 2>/dev/null || \
     echo "Note: MS fonts skipped (optional)"
 
 echo ""
