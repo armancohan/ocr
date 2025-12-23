@@ -120,18 +120,36 @@ echo "Running olmOCR pipeline..."
 echo "(Model loading takes 1-2 minutes, then you'll see progress)"
 echo ""
 
+# Create workspace directory (olmOCR writes markdown to workspace/markdown/)
+WORKSPACE="$OUTPUT_ABS/.olmocr_workspace"
+mkdir -p "$WORKSPACE"
+
 docker run --rm -t --gpus all \
     --shm-size=16g \
     -e PYTHONUNBUFFERED=1 \
     -v "$INPUT_ABS:/input:ro" \
+    -v "$WORKSPACE:/workspace" \
     -v "$OUTPUT_ABS:/output" \
     -v "$PDF_LISTFILE:/pdf_list.txt:ro" \
     alleninstituteforai/olmocr:latest-with-model \
-    -c "python -m olmocr.pipeline /output --markdown --pdfs /pdf_list.txt"
+    -c "python -m olmocr.pipeline /workspace --markdown --pdfs /pdf_list.txt && \
+        cp /workspace/markdown/*.md /output/ 2>/dev/null || true"
+
+# Also try to copy if docker command didn't do it
+if [ -d "$WORKSPACE/markdown" ]; then
+    cp "$WORKSPACE/markdown"/*.md "$OUTPUT_ABS/" 2>/dev/null || true
+fi
+
+# Count results
+MD_COUNT=$(find "$OUTPUT_ABS" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l)
 
 echo ""
 echo "============================================"
 echo "  Conversion Complete!"
 echo "============================================"
-echo "Output files: $OUTPUT_ABS"
-ls -la "$OUTPUT_ABS"/*.md 2>/dev/null || echo "No markdown files generated"
+echo "Markdown files created: $MD_COUNT"
+echo "Output directory: $OUTPUT_ABS"
+ls -la "$OUTPUT_ABS"/*.md 2>/dev/null | head -10 || echo "No markdown files generated"
+
+# Cleanup workspace (optional - comment out to keep for debugging)
+# rm -rf "$WORKSPACE"
