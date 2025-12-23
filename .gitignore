@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# olmOCR workspace and cache
+.olmocr_workspace/
+*.workspace/
+.progress.json
+
+# Model cache
+.cache/
+huggingface/
+transformers_cache/
+
+# Logs
+*.log
+batch_convert.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Input/Output directories (user data)
+pdfs/
+markdown_output/
+output/
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Config with secrets
+config.json
+.env

@@ -1,0 +1,21 @@
+{
+    "model": "allenai/olmOCR-2-7B-1025-FP8",
+    "workers": 8,
+    "gpu_memory_utilization": 0.9,
+    "max_page_retries": 3,
+    "pages_per_group": 10,
+    "tensor_parallel_size": 1,
+
+    "_comments": {
+        "model": "Use allenai/olmOCR-7B-0725-FP8 for older version",
+        "workers": "Increase for more parallelism (uses more memory)",
+        "gpu_memory_utilization": "Reduce to 0.7-0.8 if OOM errors occur",
+        "tensor_parallel_size": "Set to 2+ for multi-GPU setups"
+    },
+
+    "_api_servers": {
+        "deepinfra": "https://api.deepinfra.com/v1/openai",
+        "parasail": "https://api.parasail.io/v1",
+        "note": "Use --server flag with these URLs for cloud API inference"
+    }
+}

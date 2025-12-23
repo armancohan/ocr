@@ -1,0 +1,35 @@
+# PDF files (potentially large/binary)
+*.pdf
+*.PDF
+
+# Output markdown files (generated content)
+markdown_output/
+output/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Model cache and weights
+.cache/
+huggingface/
+*.bin
+*.safetensors
+*.gguf
+
+# olmOCR workspace
+.olmocr_workspace/
+*.workspace/
+
+# Logs
+*.log
+
+# Large binary files
+*.tar
+*.tar.gz
+*.zip
+*.7z
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
