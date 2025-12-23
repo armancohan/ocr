@@ -71,8 +71,9 @@ docker run --rm -it --gpus all \
     --shm-size=16g \
     -v "$INPUT_ABS:/input:ro" \
     -v "$OUTPUT_ABS:/output" \
+    --entrypoint "" \
     alleninstituteforai/olmocr:latest-with-model \
-    bash -c '
+    sh -c '
         set -e
         echo "Container started, checking GPU..."
         nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
