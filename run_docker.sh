@@ -75,24 +75,46 @@ echo "Starting conversion..."
 echo "Note: Model loading may take 1-2 minutes on first run"
 echo ""
 
-# Build list of PDF files and write to a temp file (handles spaces and long lists)
+# Build list of PDF files, skipping already converted ones
 PDF_LISTFILE=$(mktemp)
 trap "rm -f $PDF_LISTFILE" EXIT
 
+TOTAL_PDFS=0
+SKIPPED=0
+
 find "$INPUT_ABS" -type f -iname "*.pdf" | while read -r pdf; do
     relpath="${pdf#$INPUT_ABS/}"
-    echo "/input/$relpath" >> "$PDF_LISTFILE"
+    basename="${relpath%.pdf}"
+    basename="${basename%.PDF}"
+
+    # Check if markdown already exists (try multiple possible output names)
+    md_file="$OUTPUT_ABS/${basename}.md"
+    md_file_flat="$OUTPUT_ABS/$(basename "$basename").md"
+
+    if [ -f "$md_file" ] || [ -f "$md_file_flat" ]; then
+        echo "SKIP" >> "${PDF_LISTFILE}.skip"
+    else
+        echo "/input/$relpath" >> "$PDF_LISTFILE"
+    fi
 done
 
-PDF_COUNT_FOUND=$(wc -l < "$PDF_LISTFILE")
-echo "PDF files to process: $PDF_COUNT_FOUND"
-head -5 "$PDF_LISTFILE"
+PDF_COUNT_FOUND=$(wc -l < "$PDF_LISTFILE" 2>/dev/null || echo 0)
+SKIPPED_COUNT=$(wc -l < "${PDF_LISTFILE}.skip" 2>/dev/null || echo 0)
+rm -f "${PDF_LISTFILE}.skip"
+
+echo "PDF files found: $((PDF_COUNT_FOUND + SKIPPED_COUNT))"
+echo "Already converted (skipped): $SKIPPED_COUNT"
+echo "To process: $PDF_COUNT_FOUND"
 echo ""
 
 if [ "$PDF_COUNT_FOUND" -eq 0 ]; then
-    echo "Error: No PDF files found"
-    exit 1
+    echo "All files already converted! Nothing to do."
+    exit 0
 fi
+
+echo "Files to process:"
+head -5 "$PDF_LISTFILE"
+echo ""
 
 echo "Running olmOCR pipeline..."
 echo "(Model loading takes 1-2 minutes, then you'll see progress)"
