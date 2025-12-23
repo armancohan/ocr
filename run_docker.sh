@@ -78,10 +78,25 @@ docker run --rm -it --gpus all \
         echo "Container started, checking GPU..."
         nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
         echo ""
+
+        # Find all PDF files
+        echo "Looking for PDF files in /input..."
+        PDF_FILES=$(find /input -maxdepth 1 -type f \( -iname "*.pdf" \) | head -100)
+
+        if [ -z "$PDF_FILES" ]; then
+            echo "Error: No PDF files found in /input"
+            ls -la /input/
+            exit 1
+        fi
+
+        echo "Found PDF files:"
+        echo "$PDF_FILES" | head -5
+        echo ""
+
         echo "Starting olmOCR pipeline..."
         python -m olmocr.pipeline /output/.workspace \
             --markdown \
-            --pdfs /input/*.pdf \
+            --pdfs $PDF_FILES \
             --gpu-memory-utilization 0.9
 
         echo ""
