@@ -3,6 +3,7 @@
 # No installation required - just Docker with NVIDIA Container Toolkit
 
 set -e
+shopt -s nullglob globstar 2>/dev/null || true
 
 INPUT_DIR="${1:-./pdfs}"
 OUTPUT_DIR="${2:-./markdown_output}"
@@ -74,12 +75,33 @@ echo "Starting conversion..."
 echo "Note: Model loading may take 1-2 minutes on first run"
 echo ""
 
+# Build list of PDF files (glob must expand on host, not in container)
+PDF_LIST=""
+for pdf in "$INPUT_ABS"/*.pdf "$INPUT_ABS"/*.PDF; do
+    if [ -f "$pdf" ]; then
+        filename=$(basename "$pdf")
+        PDF_LIST="$PDF_LIST /input/$filename"
+    fi
+done
+
+# Also check subdirectories
+for pdf in "$INPUT_ABS"/**/*.pdf "$INPUT_ABS"/**/*.PDF; do
+    if [ -f "$pdf" ]; then
+        relpath="${pdf#$INPUT_ABS/}"
+        PDF_LIST="$PDF_LIST /input/$relpath"
+    fi
+done
+
+echo "PDF files to process:"
+echo "$PDF_LIST" | tr ' ' '\n' | head -5
+echo ""
+
 docker run --rm --gpus all \
     --shm-size=16g \
     -v "$INPUT_ABS:/input" \
     -v "$OUTPUT_ABS:/output" \
     alleninstituteforai/olmocr:latest-with-model \
-    -c "python -m olmocr.pipeline /output --markdown --pdfs /input/*.pdf"
+    -c "python -m olmocr.pipeline /output --markdown --pdfs $PDF_LIST"
 
 echo ""
 echo "============================================"
