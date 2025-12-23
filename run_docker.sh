@@ -79,13 +79,18 @@ docker run --rm -it --gpus all \
         nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
         echo ""
 
-        # Find all PDF files
+        # Find all PDF files (recursive search)
         echo "Looking for PDF files in /input..."
-        PDF_FILES=$(find /input -maxdepth 1 -type f \( -iname "*.pdf" \) | head -100)
+        echo "Contents of /input:"
+        ls -la /input/ | head -20
+        echo ""
+
+        PDF_FILES=$(find /input -type f \( -iname "*.pdf" \) 2>/dev/null | head -500)
 
         if [ -z "$PDF_FILES" ]; then
             echo "Error: No PDF files found in /input"
-            ls -la /input/
+            echo "Searching for any files..."
+            find /input -type f | head -10
             exit 1
         fi
 
