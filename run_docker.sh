@@ -23,8 +23,8 @@ mkdir -p "$OUTPUT_DIR"
 INPUT_ABS=$(cd "$INPUT_DIR" && pwd)
 OUTPUT_ABS=$(cd "$OUTPUT_DIR" && pwd)
 
-# Count PDFs
-PDF_COUNT=$(find "$INPUT_ABS" -maxdepth 1 -name "*.pdf" -o -name "*.PDF" 2>/dev/null | wc -l)
+# Count PDFs (recursive)
+PDF_COUNT=$(find "$INPUT_ABS" -type f -iname "*.pdf" 2>/dev/null | wc -l)
 
 echo "============================================"
 echo "  olmOCR 2 Docker PDF-to-Markdown"
@@ -32,6 +32,13 @@ echo "============================================"
 echo "Input:  $INPUT_ABS ($PDF_COUNT PDF files)"
 echo "Output: $OUTPUT_ABS"
 echo ""
+
+if [ "$PDF_COUNT" -eq 0 ]; then
+    echo "Error: No PDF files found in $INPUT_ABS"
+    echo "Contents:"
+    ls -la "$INPUT_ABS" | head -10
+    exit 1
+fi
 
 # Check for Docker
 if ! command -v docker &> /dev/null; then
@@ -61,57 +68,18 @@ echo ""
 echo "Pulling olmOCR Docker image (this may take a while on first run)..."
 docker pull alleninstituteforai/olmocr:latest-with-model
 
-# Run conversion with interactive terminal for live output
+# Run conversion - using exact syntax from olmOCR documentation
 echo ""
 echo "Starting conversion..."
 echo "Note: Model loading may take 1-2 minutes on first run"
 echo ""
 
-docker run --rm -it --gpus all \
+docker run --rm --gpus all \
     --shm-size=16g \
-    -v "$INPUT_ABS:/input:ro" \
+    -v "$INPUT_ABS:/input" \
     -v "$OUTPUT_ABS:/output" \
-    --entrypoint "" \
     alleninstituteforai/olmocr:latest-with-model \
-    sh -c '
-        set -e
-        echo "Container started, checking GPU..."
-        nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader
-        echo ""
-
-        # Find all PDF files (recursive search)
-        echo "Looking for PDF files in /input..."
-        echo "Contents of /input:"
-        ls -la /input/ | head -20
-        echo ""
-
-        PDF_FILES=$(find /input -type f \( -iname "*.pdf" \) 2>/dev/null | head -500)
-
-        if [ -z "$PDF_FILES" ]; then
-            echo "Error: No PDF files found in /input"
-            echo "Searching for any files..."
-            find /input -type f | head -10
-            exit 1
-        fi
-
-        echo "Found PDF files:"
-        echo "$PDF_FILES" | head -5
-        echo ""
-
-        echo "Starting olmOCR pipeline..."
-        python -m olmocr.pipeline /output/.workspace \
-            --markdown \
-            --pdfs $PDF_FILES \
-            --gpu-memory-utilization 0.9
-
-        echo ""
-        echo "Moving output files..."
-        if [ -d "/output/.workspace/markdown" ]; then
-            mv /output/.workspace/markdown/* /output/ 2>/dev/null || true
-        fi
-        rm -rf /output/.workspace
-        echo "Done!"
-    '
+    -c "python -m olmocr.pipeline /output --markdown --pdfs /input/*.pdf"
 
 echo ""
 echo "============================================"
