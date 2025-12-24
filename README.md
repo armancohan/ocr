@@ -284,6 +284,95 @@ cd pdf-to-md
 ./cloud_quickstart.sh ./data ./output
 ```
 
+## Alternative: Qwen3-VL OCR
+
+This repo also supports [Qwen3-VL](https://github.com/QwenLM/Qwen3-VL), a powerful vision-language model with excellent OCR capabilities supporting 32 languages.
+
+### Qwen3-VL Features
+
+- **32-language OCR**: Expanded from 19 languages, robust in low light, blur, and tilt
+- **Document Intelligence**: Advanced layout understanding for complex documents
+- **256K Context**: Native support, expandable to 1M for long documents
+- **FP8 Quantization**: Efficient inference with minimal quality loss
+
+### Quick Start with Qwen3-VL
+
+**Step 1: Start the vLLM server**
+
+```bash
+# Using Docker (recommended)
+./start_qwen_server.sh --docker
+
+# Or locally (requires vllm>=0.11.0)
+./start_qwen_server.sh
+```
+
+Wait for the server to be ready (check logs with `docker logs -f qwen-vllm`).
+
+**Step 2: Run OCR**
+
+```bash
+# Install Python dependencies
+pip install openai pdf2image pillow tqdm
+
+# Convert PDFs
+python qwen_ocr.py --input ./data --output ./markdown
+
+# Skip already converted files
+python qwen_ocr.py --input ./data --output ./markdown --skip-existing
+```
+
+### Qwen3-VL Server Options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MODEL` | `Qwen/Qwen3-VL-30B-A3B-Instruct-FP8` | Model to use |
+| `PORT` | `8000` | Server port |
+| `GPU_MEMORY_UTIL` | `0.90` | GPU memory utilization |
+| `MAX_MODEL_LEN` | `32768` | Maximum context length |
+| `TENSOR_PARALLEL` | `1` | Number of GPUs |
+
+Example with custom settings:
+
+```bash
+PORT=8080 TENSOR_PARALLEL=2 ./start_qwen_server.sh --docker
+```
+
+### qwen_ocr.py Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--input`, `-i` | Required | Input PDF file or directory |
+| `--output`, `-o` | Required | Output directory for Markdown |
+| `--server`, `-s` | `http://localhost:8000/v1` | vLLM server URL |
+| `--model`, `-m` | `Qwen/Qwen3-VL-30B-A3B-Instruct-FP8` | Model name |
+| `--dpi` | `200` | DPI for PDF rendering |
+| `--max-tokens` | `4096` | Max tokens per page |
+| `--workers`, `-w` | `4` | Concurrent pages to process |
+| `--skip-existing` | `False` | Skip already converted files |
+
+### Hardware Requirements for Qwen3-VL
+
+| GPU | Configuration |
+|-----|---------------|
+| H100/H200 | Full model, optimal performance |
+| A100 (80GB) | Full model with FP8 |
+| A100 (40GB) | Use `GPU_MEMORY_UTIL=0.95` |
+| RTX 4090 (24GB) | May need reduced context |
+
+### Managing the Server
+
+```bash
+# Check server status
+curl http://localhost:8000/v1/models
+
+# View logs
+docker logs -f qwen-vllm
+
+# Stop server
+docker stop qwen-vllm && docker rm qwen-vllm
+```
+
 ## License
 
 This tool is provided as-is. olmOCR is licensed under [Apache 2.0](https://github.com/allenai/olmocr/blob/main/LICENSE) by Allen AI.
@@ -291,4 +380,5 @@ This tool is provided as-is. olmOCR is licensed under [Apache 2.0](https://githu
 ## Acknowledgments
 
 - [olmOCR](https://github.com/allenai/olmocr) by Allen AI
+- [Qwen3-VL](https://github.com/QwenLM/Qwen3-VL) by Alibaba Cloud
 - [vLLM](https://github.com/vllm-project/vllm) for efficient inference
