@@ -40,16 +40,14 @@ if [ "$1" = "--docker" ] || [ "$1" = "-d" ]; then
         -p ${PORT}:8000 \
         -v ~/.cache/huggingface:/root/.cache/huggingface \
         vllm/vllm-openai:latest \
-        --model "$MODEL" \
+        "$MODEL" \
         --host 0.0.0.0 \
         --port 8000 \
         --gpu-memory-utilization "$GPU_MEMORY_UTIL" \
         --max-model-len "$MAX_MODEL_LEN" \
         --tensor-parallel-size "$TENSOR_PARALLEL" \
         --trust-remote-code \
-        --mm-encoder-tp-mode data \
-        --limit-mm-per-prompt video=0 \
-        --async-scheduling
+        --limit-mm-per-prompt '{"video": 0}'
 
     echo ""
     echo "Server starting in background..."
@@ -82,7 +80,5 @@ else
         --max-model-len "$MAX_MODEL_LEN" \
         --tensor-parallel-size "$TENSOR_PARALLEL" \
         --trust-remote-code \
-        --mm-encoder-tp-mode data \
-        --limit-mm-per-prompt video=0 \
-        --async-scheduling
+        --limit-mm-per-prompt '{"video": 0}'
 fi
